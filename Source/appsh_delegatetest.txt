@@ -1,0 +1,107 @@
+// Example program
+#include <iostream>
+#include <string>
+
+template<typename Arg>
+class CallBack
+{
+    public:
+    virtual ~CallBack(){}
+    virtual void Invoke(Arg arg) = 0;
+};
+
+template<typename Arg>
+class StaticCallBack : public CallBack<Arg>
+{
+    public:
+    StaticCallBack(void(*f)(Arg)):fun(f)
+    {
+    }
+    
+    void Invoke(Arg arg)
+    {
+        fun(arg);
+    }
+    
+    private:
+    void(*fun)(Arg);
+};
+
+template<typename Object,typename Method,typename Arg>
+class MethodCallBack : public CallBack<Arg>
+{
+    public:
+    MethodCallBack(Object *o,Method m):obj(o),method(m)
+    {
+    }
+    void Invoke(Arg arg)
+    {
+        if(obj != NULL)
+        {
+            (obj->*method)(arg);
+        }
+    }
+    
+    private:
+    Object *obj;
+    Method method;
+};
+
+template<typename Arg>
+class Delegate
+{
+    public:
+    template<typename Object,typename Method>
+    Delegate(Object *obj,Method method):callback(new MethodCallBack<Object,Method,Arg>(obj,method))
+    {
+    }
+    
+    Delegate(void (*fun)(Arg)):callback(new StaticCallBack<Arg>(fun))
+    {
+    }
+    
+    ~Delegate(void)
+    {
+        if(callback != NULL)
+        {
+            delete callback;
+        }
+    }
+    
+    void operator ()(Arg arg)
+    {
+        callback->Invoke(arg);
+    }
+    
+    private:
+    CallBack<Arg>* callback;
+};
+
+class A
+{
+    public:
+    void print(int k)
+    {
+        std::cout<<"print in A  k = "<< k <<std::endl;
+    }
+};
+
+void showMessage(int k)
+{
+    std::cout<< "show Message k = "<< k <<std::endl;
+}
+
+int main()
+{
+    A* a = new A();
+    Delegate<int> delegate(a,&A::print);
+    Delegate<int> delegate2(showMessage);
+    
+    delegate(100);
+    delegate2(5);
+}
+
+
+//print in A  k = 100
+//show Message k = 5
+ 
